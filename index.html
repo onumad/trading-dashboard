@@ -609,8 +609,9 @@
                     // Parse CSV header
                     const headers = lines[0].split(',').map(h => h.trim());
                     
-                    // Parse trades
-                    const trades = [];
+                    // Parse trades and group by date
+                    const tradesByDate = {};
+                    
                     for (let i = 1; i < lines.length; i++) {
                         const values = lines[i].split(',');
                         const trade = {};
@@ -619,36 +620,63 @@
                         });
                         
                         if (trade['Contract'] && trade['Buy/Sell']) {
-                            trades.push({
+                            const timestamp = trade['Time Closed'] || new Date().toISOString();
+                            
+                            // Extract date from timestamp (handle various formats)
+                            let tradeDate;
+                            if (timestamp.includes('-')) {
+                                // Format: 2026-01-29 or 2026-01-29T10:30:00
+                                tradeDate = timestamp.split(' ')[0].split('T')[0];
+                            } else if (timestamp.includes('/')) {
+                                // Format: 01/29/2026
+                                const parts = timestamp.split(' ')[0].split('/');
+                                tradeDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                            } else {
+                                tradeDate = new Date(timestamp).toISOString().split('T')[0];
+                            }
+                            
+                            if (!tradesByDate[tradeDate]) {
+                                tradesByDate[tradeDate] = [];
+                            }
+                            
+                            tradesByDate[tradeDate].push({
                                 contract: trade['Contract'],
                                 type: trade['Buy/Sell'] === 'Buy' ? 'LONG' : 'SHORT',
                                 entry: parseFloat(trade['Avg. Entry Price']),
                                 exit: parseFloat(trade['Avg. Exit Price']),
                                 qty: parseInt(trade['Qty']),
                                 pnl: parseFloat(trade['Realized P&L']),
-                                timestamp: trade['Time Closed'] || new Date().toISOString()
+                                timestamp: timestamp
                             });
                         }
                     }
                     
-                    // Determine date from filename or use today
-                    const dateMatch = file.name.match(/(\d{4}-\d{2}-\d{2})/);
-                    const date = dateMatch ? dateMatch[1] : selectedDate;
-                    
                     if (firebaseEnabled) {
-                        // Save to Firebase
-                        await db.ref(`trades/${date}`).set(trades);
-                        showNotification(`✅ ${trades.length} trades uploaded and synced!`);
+                        let totalTrades = 0;
+                        const dates = Object.keys(tradesByDate);
                         
-                        // Reload data
-                        await loadDate(date);
+                        // Save each date's trades to Firebase
+                        for (const date of dates) {
+                            const trades = tradesByDate[date];
+                            await db.ref(`trades/${date}`).set(trades);
+                            totalTrades += trades.length;
+                            console.log(`✅ Saved ${trades.length} trades for ${date}`);
+                        }
+                        
+                        if (dates.length === 1) {
+                            showNotification(`✅ ${totalTrades} trades uploaded for ${dates[0]}!`);
+                            await loadDate(dates[0]);
+                        } else {
+                            showNotification(`✅ ${totalTrades} trades uploaded across ${dates.length} days!`);
+                        }
+                        
                     } else {
                         showNotification('❌ Firebase not configured. Cannot save trades.', 'error');
                     }
                     
                 } catch (error) {
                     console.error('Upload error:', error);
-                    showNotification('❌ Failed to parse CSV file', 'error');
+                    showNotification('❌ Failed to parse CSV file: ' + error.message, 'error');
                 }
                 
                 // Reset file input

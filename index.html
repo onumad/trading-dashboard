@@ -296,10 +296,9 @@
                             accountsMap[trade.account].trades.push(trade);
                         });
                         
-                        // Calculate P&L per account (simple calculation - may need refinement)
+                        // Calculate P&L per account
                         Object.values(accountsMap).forEach(account => {
-                            // This is simplified - proper P&L needs matched entry/exit pairs
-                            account.pnl = 0; // Calculate based on your logic
+                            account.pnl = calculatePnL(account.trades);
                         });
                         
                         currentData = {
@@ -368,6 +367,78 @@
             } else {
                 container.innerHTML = '<div class="col-span-full text-center text-gray-400 p-12">No accounts data</div>';
             }
+        }
+        
+        function calculatePnL(trades) {
+            // Group trades by contract to match pairs
+            const contractTrades = {};
+            
+            trades.forEach(trade => {
+                if (!contractTrades[trade.contract]) {
+                    contractTrades[trade.contract] = [];
+                }
+                contractTrades[trade.contract].push(trade);
+            });
+            
+            let totalPnl = 0;
+            
+            // Calculate P&L for each contract
+            Object.values(contractTrades).forEach(contractGroup => {
+                // Sort by timestamp
+                contractGroup.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                
+                let position = 0; // Net position
+                let avgEntry = 0; // Average entry price
+                
+                contractGroup.forEach(trade => {
+                    const qty = trade.qty;
+                    const price = trade.price;
+                    
+                    if (trade.type === 'LONG') {
+                        // Buying
+                        if (position < 0) {
+                            // Closing short position
+                            const closedQty = Math.min(qty, Math.abs(position));
+                            const pnl = closedQty * (avgEntry - price);
+                            totalPnl += pnl;
+                            position += closedQty;
+                            
+                            // Remaining qty opens new long
+                            const remainingQty = qty - closedQty;
+                            if (remainingQty > 0) {
+                                avgEntry = price;
+                                position = remainingQty;
+                            }
+                        } else {
+                            // Adding to long or opening new long
+                            avgEntry = ((position * avgEntry) + (qty * price)) / (position + qty);
+                            position += qty;
+                        }
+                    } else {
+                        // Selling
+                        if (position > 0) {
+                            // Closing long position
+                            const closedQty = Math.min(qty, position);
+                            const pnl = closedQty * (price - avgEntry);
+                            totalPnl += pnl;
+                            position -= closedQty;
+                            
+                            // Remaining qty opens new short
+                            const remainingQty = qty - closedQty;
+                            if (remainingQty > 0) {
+                                avgEntry = price;
+                                position = -remainingQty;
+                            }
+                        } else {
+                            // Adding to short or opening new short
+                            avgEntry = ((Math.abs(position) * avgEntry) + (qty * price)) / (Math.abs(position) + qty);
+                            position -= qty;
+                        }
+                    }
+                });
+            });
+            
+            return totalPnl;
         }
         
         function createAccountCard(account) {
@@ -843,9 +914,11 @@
                             console.log(`✅ Saved ${newTrades.length} new trades for ${date} (${mergedTrades.length} total across ${accounts.length} accounts)`);
                         }
                         
+                        // Refresh calendar and load data
+                        await initializeDashboard();
+                        
                         if (dates.length === 1) {
                             showNotification(`✅ ${totalTrades} trades uploaded for ${dates[0]}!`);
-                            await loadDate(dates[0]);
                         } else {
                             showNotification(`✅ ${totalTrades} trades uploaded across ${dates.length} days!`);
                         }
@@ -894,13 +967,9 @@
                         // Populate tradingData with all available dates
                         Object.keys(trades).forEach(date => {
                             const dayTrades = trades[date];
-                            let totalPnl = 0;
                             
-                            // Calculate P&L for the day (simplified - you may want more sophisticated logic)
-                            dayTrades.forEach(trade => {
-                                // This is a placeholder - actual P&L calculation would need matched pairs
-                                totalPnl += 0; // You'd calculate this based on your logic
-                            });
+                            // Calculate P&L for the day
+                            const totalPnl = calculatePnL(dayTrades);
                             
                             tradingData[date] = {
                                 pnl: totalPnl,
@@ -910,6 +979,7 @@
                         });
                         
                         console.log('Loaded dates from Firebase:', Object.keys(tradingData));
+                        console.log('Trading data:', tradingData);
                         renderCalendar();
                         
                         // Load most recent date

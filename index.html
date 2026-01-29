@@ -369,6 +369,26 @@
             }
         }
         
+        function getContractMultiplier(product) {
+            // Contract multipliers for futures
+            const multipliers = {
+                'NQ': 20,      // E-Mini NASDAQ: $20 per point
+                'ES': 50,      // E-Mini S&P 500: $50 per point
+                'YM': 5,       // E-Mini Dow: $5 per point
+                'RTY': 50,     // E-Mini Russell: $50 per point
+                'GC': 100,     // Gold: $100 per point (0.1 = $10)
+                'SI': 5000,    // Silver: $5000 per point (0.001 = $5)
+                'CL': 1000,    // Crude Oil: $1000 per point (0.01 = $10)
+                'MGC': 10,     // E-Micro Gold: $10 per point (0.1 = $1)
+                'MES': 5,      // Micro E-mini S&P: $5 per point
+                'MNQ': 2,      // Micro E-mini NASDAQ: $2 per point
+                'M2K': 5,      // Micro E-mini Russell: $5 per point
+                'MYM': 0.5     // Micro E-mini Dow: $0.50 per point
+            };
+            
+            return multipliers[product] || 1;
+        }
+        
         function calculatePnL(trades) {
             // Group trades by contract to match pairs
             const contractTrades = {};
@@ -381,6 +401,7 @@
             });
             
             let totalPnl = 0;
+            const commission = 2.50; // Per contract per side (adjust if needed)
             
             // Calculate P&L for each contract
             Object.values(contractTrades).forEach(contractGroup => {
@@ -389,17 +410,21 @@
                 
                 let position = 0; // Net position
                 let avgEntry = 0; // Average entry price
+                let entryProduct = '';
                 
                 contractGroup.forEach(trade => {
                     const qty = trade.qty;
                     const price = trade.price;
+                    const product = trade.product || '';
+                    const multiplier = getContractMultiplier(product);
                     
                     if (trade.type === 'LONG') {
                         // Buying
                         if (position < 0) {
                             // Closing short position
                             const closedQty = Math.min(qty, Math.abs(position));
-                            const pnl = closedQty * (avgEntry - price);
+                            const priceDiff = avgEntry - price;
+                            const pnl = (closedQty * priceDiff * multiplier) - (closedQty * commission * 2); // Round trip commission
                             totalPnl += pnl;
                             position += closedQty;
                             
@@ -408,10 +433,16 @@
                             if (remainingQty > 0) {
                                 avgEntry = price;
                                 position = remainingQty;
+                                entryProduct = product;
                             }
                         } else {
                             // Adding to long or opening new long
-                            avgEntry = ((position * avgEntry) + (qty * price)) / (position + qty);
+                            if (position > 0) {
+                                avgEntry = ((position * avgEntry) + (qty * price)) / (position + qty);
+                            } else {
+                                avgEntry = price;
+                                entryProduct = product;
+                            }
                             position += qty;
                         }
                     } else {
@@ -419,7 +450,8 @@
                         if (position > 0) {
                             // Closing long position
                             const closedQty = Math.min(qty, position);
-                            const pnl = closedQty * (price - avgEntry);
+                            const priceDiff = price - avgEntry;
+                            const pnl = (closedQty * priceDiff * multiplier) - (closedQty * commission * 2); // Round trip commission
                             totalPnl += pnl;
                             position -= closedQty;
                             
@@ -428,10 +460,16 @@
                             if (remainingQty > 0) {
                                 avgEntry = price;
                                 position = -remainingQty;
+                                entryProduct = product;
                             }
                         } else {
                             // Adding to short or opening new short
-                            avgEntry = ((Math.abs(position) * avgEntry) + (qty * price)) / (Math.abs(position) + qty);
+                            if (position < 0) {
+                                avgEntry = ((Math.abs(position) * avgEntry) + (qty * price)) / (Math.abs(position) + qty);
+                            } else {
+                                avgEntry = price;
+                                entryProduct = product;
+                            }
                             position -= qty;
                         }
                     }
@@ -863,6 +901,7 @@
                         
                         const account = row['Account'];
                         const contract = row['Contract'];
+                        const productCode = row['Product'] || '';
                         const product = row['Product Description'] || row['Product'] || contract;
                         const type = row['B/S'].trim() === 'Buy' ? 'LONG' : 'SHORT';
                         const price = parseFloat(row['Avg Fill Price'] || row['avgPrice'] || row['decimalFillAvg']);
@@ -871,6 +910,7 @@
                         tradesByDate[tradeDate].push({
                             account: account,
                             contract: contract,
+                            product: productCode,
                             desc: product,
                             type: type,
                             price: price,

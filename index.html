@@ -24,17 +24,6 @@
 </head>
 <body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen text-gray-200 p-5">
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-10 p-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-2xl">
-            <h1 class="text-4xl font-bold mb-4">🎯 Trading Accounts Dashboard</h1>
-            <div id="totalPnl" class="text-5xl font-bold text-green-400 my-4">Loading...</div>
-            <div class="text-lg opacity-90">
-                <span id="accountCount">6</span> Accounts • 
-                <span id="dayInfo">Day 1</span> • 
-                <span id="dateDisplay">2026-01-29</span>
-            </div>
-        </header>
-
         <!-- View Toggle -->
         <div class="flex gap-3 justify-center mb-8">
             <button onclick="setView('grid')" id="gridViewBtn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold transition-all border-2 border-indigo-400">
@@ -186,13 +175,6 @@
 
         function renderDashboard() {
             if (!currentData) return;
-
-            document.getElementById('totalPnl').textContent = '$' + currentData.totalPnl.toFixed(2);
-            document.getElementById('totalPnl').className = currentData.totalPnl >= 0 
-                ? 'text-5xl font-bold text-green-400 my-4'
-                : 'text-5xl font-bold text-red-400 my-4';
-            document.getElementById('dayInfo').textContent = 'Day ' + currentData.dayNumber;
-            document.getElementById('dateDisplay').textContent = currentData.date;
 
             const container = document.getElementById('accountsContainer');
             container.innerHTML = '';

@@ -56,6 +56,25 @@
             opacity: 0.9;
         }
 
+        .date-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .date-selector select {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            background: #1a1f3a;
+            color: #e0e0e0;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .date-selector select:hover {
+            border-color: #764ba2;
+        }
+
         .accounts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -161,20 +180,12 @@
             transition: width 0.3s ease;
         }
 
-        .progress-fill.complete {
-            background: linear-gradient(90deg, #4ade80 0%, #10b981 100%);
-        }
-
         .requirement {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 0;
             font-size: 0.95em;
-        }
-
-        .requirement.complete {
-            color: #4ade80;
         }
 
         .requirement.incomplete {
@@ -217,18 +228,12 @@
             margin-left: 10px;
         }
 
-        .emoji {
-            margin-left: 8px;
-        }
-
         .lucid-special {
-            border-left: 4px solid #4D94FF;
-            background: linear-gradient(135deg, #1a1f3a 0%, #0f1425 100%);
+            border-left: 4px solid #f59e0b;
         }
 
         .apex-special {
-            border-left: 4px solid #0052FF;
-            background: linear-gradient(135deg, #001a4d 0%, #00112e 100%);
+            border-left: 4px solid #8b5cf6;
         }
 
         .update-time {
@@ -236,6 +241,13 @@
             margin-top: 30px;
             color: #9ca3af;
             font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+            color: #9ca3af;
         }
 
         @media (max-width: 768px) {
@@ -257,55 +269,112 @@
     <div class="container">
         <header>
             <h1>🎯 Trading Accounts Dashboard</h1>
-            <div class="total-pnl positive" id="totalPnl">$3,529.00</div>
+            <div class="total-pnl positive" id="totalPnl">Loading...</div>
             <div class="meta">
                 <span id="accountCount">6</span> Accounts • 
-                <span id="dayCount">Day 1</span> • 
-                Last Updated: <span id="updateTime">2026-01-29 18:55 UTC</span>
+                <span id="dayInfo">Day 1</span> • 
+                <span id="dateDisplay">2026-01-29</span>
+            </div>
+            
+            <div class="date-selector">
+                <label for="dateSelect" style="margin-right: 10px;">📅 Select Day:</label>
+                <select id="dateSelect" onchange="loadDate(this.value)">
+                    <option value="2026-01-29">Day 1 - Jan 29, 2026</option>
+                </select>
             </div>
         </header>
 
-        <div class="accounts-grid">
-            <!-- Lucid Flex Account -->
-            <div class="account-card lucid-special">
+        <div id="accountsContainer" class="accounts-grid">
+            <div class="loading">Loading data...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        async function loadDate(date) {
+            try {
+                const response = await fetch(`data/${date}.json`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load data for ${date}`);
+                }
+                
+                currentData = await response.json();
+                renderDashboard();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('accountsContainer').innerHTML = 
+                    '<div class="loading">❌ Failed to load data for ' + date + '</div>';
+            }
+        }
+
+        function renderDashboard() {
+            if (!currentData) return;
+
+            // Update header
+            document.getElementById('totalPnl').textContent = '$' + currentData.totalPnl.toFixed(2);
+            document.getElementById('dayInfo').textContent = 'Day ' + currentData.dayNumber;
+            document.getElementById('dateDisplay').textContent = currentData.date;
+            document.getElementById('updateTime').textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+
+            const container = document.getElementById('accountsContainer');
+            container.innerHTML = '';
+
+            // Render Lucid account
+            container.appendChild(createLucidCard(currentData.accounts.lucid));
+
+            // Render Apex accounts
+            currentData.accounts.apex.forEach(account => {
+                container.appendChild(createApexCard(account));
+            });
+        }
+
+        function createLucidCard(data) {
+            const card = document.createElement('div');
+            card.className = 'account-card lucid-special';
+            
+            const profitProgress = (data.pnl / data.profitGoal * 100).toFixed(1);
+            const daysProgress = (data.profitableDays150 / 5 * 100).toFixed(1);
+            
+            card.innerHTML = `
                 <div class="account-header">
                     <div>
                         <div class="account-name">
                             <img src="lucid-logo.jpg" alt="Lucid" class="account-logo">
                             Lucid Flex 50k
                         </div>
-                        <div class="account-id">LFF0505707701003</div>
+                        <div class="account-id">${data.id}</div>
                     </div>
                 </div>
                 
-                <div class="pnl-display positive">$785.00</div>
+                <div class="pnl-display ${data.pnl >= 0 ? 'positive' : 'negative'}">$${data.pnl.toFixed(2)}</div>
                 
                 <div class="stat-row">
                     <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">4</span>
+                    <span class="stat-value">${data.trades.length}</span>
                 </div>
 
                 <div class="progress-section">
                     <h4>📊 Payout Progress</h4>
                     
                     <div class="requirement incomplete">
-                        <span>Profit Goal: $785 / $1,000</span>
+                        <span>Profit Goal: $${data.pnl.toFixed(0)} / $${data.profitGoal}</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 78.5%"></div>
+                        <div class="progress-fill" style="width: ${Math.min(profitProgress, 100)}%"></div>
                     </div>
                     
                     <div class="requirement incomplete">
-                        <span>Profitable Days ($150+): 1 / 5</span>
+                        <span>Profitable Days ($150+): ${data.profitableDays150} / 5</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
+                        <div class="progress-fill" style="width: ${daysProgress}%"></div>
                     </div>
-
+                    
                     <div class="requirement incomplete">
-                        <span>Safety Buffer: $785 above start</span>
+                        <span>Safety Buffer: $${data.pnl.toFixed(0)} above start</span>
                         <span class="check-icon">💰</span>
                     </div>
                     <div class="progress-bar">
@@ -320,83 +389,83 @@
 
                 <div class="trades-section">
                     <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">NQ: -$145</div>
-                        <span class="trade-pnl" style="color: #f87171;">❌</span>
-                    </div>
-                    <div class="trade-item">
-                        <div class="trade-details">GC: +$150</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                    <div class="trade-item">
-                        <div class="trade-details">GC: +$230</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                    <div class="trade-item">
-                        <div class="trade-details">MGC 5x: +$550</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
+                    ${data.trades.map(trade => `
+                        <div class="trade-item">
+                            <div class="trade-details">${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</div>
+                            <span class="trade-pnl" style="color: ${trade.pnl >= 0 ? '#4ade80' : '#f87171'};">${trade.pnl >= 0 ? '✅' : '❌'}</span>
+                        </div>
+                    `).join('')}
                 </div>
-            </div>
+            `;
+            
+            return card;
+        }
 
-            <!-- Apex Account #1 -->
-            <div class="account-card apex-special">
+        function createApexCard(data) {
+            const card = document.createElement('div');
+            card.className = 'account-card apex-special';
+            
+            const tradingDaysProgress = (data.tradingDays / 8 * 100).toFixed(1);
+            const profitDaysProgress = (data.profitableDays50 / 5 * 100).toFixed(1);
+            const balanceProgress = (data.balance / data.minBalanceGoal * 100).toFixed(1);
+            const bufferProgress = (data.safetyBuffer / data.safetyBufferGoal * 100).toFixed(1);
+            
+            card.innerHTML = `
                 <div class="account-header">
                     <div>
                         <div class="account-name">
                             <img src="apex-logo.jpg" alt="Apex" class="account-logo">
-                            Apex 50k #1
+                            Apex 50k #${data.num}
                         </div>
-                        <div class="account-id">PAAPEX180810000062</div>
+                        <div class="account-id">${data.id}</div>
                     </div>
                 </div>
                 
-                <div class="pnl-display positive">$518.00</div>
+                <div class="pnl-display ${data.pnl >= 0 ? 'positive' : 'negative'}">$${data.pnl.toFixed(2)}</div>
                 
                 <div class="stat-row">
                     <span class="stat-label">Days Traded</span>
-                    <span class="stat-value">1</span>
+                    <span class="stat-value">${data.tradingDays}</span>
                 </div>
                 
                 <div class="stat-row">
                     <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">1</span>
+                    <span class="stat-value">${data.trades.length}</span>
                 </div>
 
                 <div class="progress-section">
                     <h4>📊 Payout Progress</h4>
                     
                     <div class="requirement incomplete">
-                        <span>Trading Days: 1 / 8</span>
+                        <span>Trading Days: ${data.tradingDays} / 8</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 12.5%"></div>
+                        <div class="progress-fill" style="width: ${tradingDaysProgress}%"></div>
                     </div>
                     
                     <div class="requirement incomplete">
-                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span>Profitable Days ($50+): ${data.profitableDays50} / 5</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
+                        <div class="progress-fill" style="width: ${profitDaysProgress}%"></div>
                     </div>
                     
                     <div class="requirement incomplete">
-                        <span>Min Balance: $50,518 / $52,600</span>
+                        <span>Min Balance: $${data.balance.toFixed(0)} / $${data.minBalanceGoal.toLocaleString()}</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 96.0%"></div>
+                        <div class="progress-fill" style="width: ${Math.min(balanceProgress, 100)}%"></div>
                     </div>
-
                     
                     <div class="requirement incomplete">
-                        <span>Safety Buffer: $518 / $2,600</span>
+                        <span>Safety Buffer: $${data.safetyBuffer.toFixed(0)} / $${data.safetyBufferGoal.toLocaleString()}</span>
                         <span class="check-icon">⏳</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 19.9%"></div>
+                        <div class="progress-fill" style="width: ${Math.min(bufferProgress, 100)}%"></div>
                     </div>
                     
                     <div class="requirement incomplete">
@@ -407,324 +476,20 @@
 
                 <div class="trades-section">
                     <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">SHORT MGC 2x: +$518</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Apex Account #2 -->
-            <div class="account-card apex-special">
-                <div class="account-header">
-                    <div>
-                        <div class="account-name">
-                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
-                            Apex 50k #2
+                    ${data.trades.map(trade => `
+                        <div class="trade-item">
+                            <div class="trade-details">${trade.type} ${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</div>
+                            <span class="trade-pnl" style="color: ${trade.pnl >= 0 ? '#4ade80' : '#f87171'};">${trade.pnl >= 0 ? '✅' : '❌'}</span>
                         </div>
-                        <div class="account-id">PAAPEX180810000058</div>
-                    </div>
+                    `).join('')}
                 </div>
-                
-                <div class="pnl-display positive">$672.00</div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Days Traded</span>
-                    <span class="stat-value">1</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">1</span>
-                </div>
+            `;
+            
+            return card;
+        }
 
-                <div class="progress-section">
-                    <h4>📊 Payout Progress</h4>
-                    
-                    <div class="requirement incomplete">
-                        <span>Trading Days: 1 / 8</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 12.5%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Profitable Days ($50+): 1 / 5</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Min Balance: $50,672 / $52,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 96.3%"></div>
-                    </div>
-
-                    
-                    <div class="requirement incomplete">
-                        <span>Safety Buffer: $672 / $2,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 25.8%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Max Payout (first 5): $2,000</span>
-                        <span class="check-icon">💡</span>
-                    </div>
-                </div>
-
-                <div class="trades-section">
-                    <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">SHORT MGC 2x: +$672</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Apex Account #3 -->
-            <div class="account-card apex-special">
-                <div class="account-header">
-                    <div>
-                        <div class="account-name">
-                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
-                            Apex 50k #3
-                        </div>
-                        <div class="account-id">PAAPEX180810000059</div>
-                    </div>
-                </div>
-                
-                <div class="pnl-display positive">$518.00</div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Days Traded</span>
-                    <span class="stat-value">1</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">1</span>
-                </div>
-
-                <div class="progress-section">
-                    <h4>📊 Payout Progress</h4>
-                    
-                    <div class="requirement incomplete">
-                        <span>Trading Days: 1 / 8</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 12.5%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Profitable Days ($50+): 1 / 5</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Min Balance: $50,518 / $52,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 96.0%"></div>
-                    </div>
-
-                    
-                    <div class="requirement incomplete">
-                        <span>Safety Buffer: $518 / $2,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 19.9%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Max Payout (first 5): $2,000</span>
-                        <span class="check-icon">💡</span>
-                    </div>
-                </div>
-
-                <div class="trades-section">
-                    <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">SHORT MGC 2x: +$518</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Apex Account #4 -->
-            <div class="account-card apex-special">
-                <div class="account-header">
-                    <div>
-                        <div class="account-name">
-                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
-                            Apex 50k #4
-                        </div>
-                        <div class="account-id">PAAPEX180810000060</div>
-                    </div>
-                </div>
-                
-                <div class="pnl-display positive">$518.00</div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Days Traded</span>
-                    <span class="stat-value">1</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">1</span>
-                </div>
-
-                <div class="progress-section">
-                    <h4>📊 Payout Progress</h4>
-                    
-                    <div class="requirement incomplete">
-                        <span>Trading Days: 1 / 8</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 12.5%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Profitable Days ($50+): 1 / 5</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Min Balance: $50,518 / $52,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 96.0%"></div>
-                    </div>
-
-                    
-                    <div class="requirement incomplete">
-                        <span>Safety Buffer: $518 / $2,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 19.9%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Max Payout (first 5): $2,000</span>
-                        <span class="check-icon">💡</span>
-                    </div>
-                </div>
-
-                <div class="trades-section">
-                    <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">SHORT MGC 2x: +$518</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Apex Account #5 -->
-            <div class="account-card apex-special">
-                <div class="account-header">
-                    <div>
-                        <div class="account-name">
-                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
-                            Apex 50k #5
-                        </div>
-                        <div class="account-id">PAAPEX180810000061</div>
-                    </div>
-                </div>
-                
-                <div class="pnl-display positive">$518.00</div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Days Traded</span>
-                    <span class="stat-value">1</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="stat-label">Closed Trades</span>
-                    <span class="stat-value">1</span>
-                </div>
-
-                <div class="progress-section">
-                    <h4>📊 Payout Progress</h4>
-                    
-                    <div class="requirement incomplete">
-                        <span>Trading Days: 1 / 8</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 12.5%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Profitable Days ($50+): 1 / 5</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 20%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Min Balance: $50,518 / $52,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 96.0%"></div>
-                    </div>
-
-                    
-                    <div class="requirement incomplete">
-                        <span>Safety Buffer: $518 / $2,600</span>
-                        <span class="check-icon">⏳</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 19.9%"></div>
-                    </div>
-                    
-                    <div class="requirement incomplete">
-                        <span>Max Payout (first 5): $2,000</span>
-                        <span class="check-icon">💡</span>
-                    </div>
-                </div>
-
-                <div class="trades-section">
-                    <h4>Recent Trades</h4>
-                    <div class="trade-item">
-                        <div class="trade-details">SHORT MGC 2x: +$518</div>
-                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Auto-refresh every 60 seconds
-        setTimeout(() => location.reload(), 60000);
-        
-        // Update time display
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('updateTime').textContent = now.toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
-        }, 1000);
+        // Load initial data
+        loadDate('2026-01-29');
     </script>
 </body>
 </html>

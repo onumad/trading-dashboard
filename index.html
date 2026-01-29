@@ -817,12 +817,30 @@
                             return;
                         }
                         
-                        // Save each date's trades to Firebase
+                        // Save each date's trades to Firebase (merge with existing)
                         for (const date of dates) {
-                            const trades = tradesByDate[date];
-                            await db.ref(`trades/${date}`).set(trades);
-                            totalTrades += trades.length;
-                            console.log(`✅ Saved ${trades.length} trades for ${date}`);
+                            const newTrades = tradesByDate[date];
+                            
+                            // Fetch existing trades
+                            const snapshot = await db.ref(`trades/${date}`).once('value');
+                            const existingTrades = snapshot.val() || [];
+                            
+                            // Merge (avoid duplicates)
+                            const existingKeys = new Set(existingTrades.map(t => `${t.timestamp}_${t.contract}_${t.account}`));
+                            const mergedTrades = [...existingTrades];
+                            
+                            newTrades.forEach(trade => {
+                                const key = `${trade.timestamp}_${trade.contract}_${trade.account}`;
+                                if (!existingKeys.has(key)) {
+                                    mergedTrades.push(trade);
+                                }
+                            });
+                            
+                            await db.ref(`trades/${date}`).set(mergedTrades);
+                            totalTrades += newTrades.length;
+                            
+                            const accounts = [...new Set(mergedTrades.map(t => t.account))];
+                            console.log(`✅ Saved ${newTrades.length} new trades for ${date} (${mergedTrades.length} total across ${accounts.length} accounts)`);
                         }
                         
                         if (dates.length === 1) {

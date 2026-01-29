@@ -1,0 +1,99 @@
+{
+  "date": "2026-01-29",
+  "dayNumber": 1,
+  "totalPnl": 3494.90,
+  "accounts": {
+    "lucid": {
+      "id": "LFF0505707701003",
+      "pnl": 764.30,
+      "balance": 50764.30,
+      "tradingDays": 1,
+      "profitableDays150": 1,
+      "profitGoal": 1000,
+      "progressPercent": 76.4,
+      "trades": [
+        { "contract": "NQH6", "desc": "E-Mini NASDAQ 100", "type": "LONG", "entry": 26197.25, "exit": 26190.00, "qty": 1, "pnl": -148.50 },
+        { "contract": "GCJ6", "desc": "Gold", "type": "LONG", "entry": 5547.00, "exit": 5548.50, "qty": 1, "pnl": 145.40 },
+        { "contract": "GCJ6", "desc": "Gold", "type": "LONG", "entry": 5543.70, "exit": 5546.00, "qty": 1, "pnl": 225.40 },
+        { "contract": "MGCJ6", "desc": "E-Micro Gold", "type": "LONG", "entry": 5547.60, "exit": 5558.60, "qty": 5, "pnl": 542.00 }
+      ]
+    },
+    "apex": [
+      {
+        "num": 1,
+        "id": "PAAPEX180810000062",
+        "pnl": 515.32,
+        "balance": 50515.32,
+        "tradingDays": 1,
+        "profitableDays50": 1,
+        "safetyBuffer": 515.32,
+        "safetyBufferGoal": 2600,
+        "minBalance": 50515.32,
+        "minBalanceGoal": 52600,
+        "trades": [
+          { "contract": "MGCG6", "desc": "E-Micro Gold", "type": "SHORT", "entry": 5165.20, "exit": 5139.30, "qty": 2, "pnl": 515.32 }
+        ]
+      },
+      {
+        "num": 2,
+        "id": "PAAPEX180810000058",
+        "pnl": 669.32,
+        "balance": 50669.32,
+        "tradingDays": 1,
+        "profitableDays50": 1,
+        "safetyBuffer": 669.32,
+        "safetyBufferGoal": 2600,
+        "minBalance": 50669.32,
+        "minBalanceGoal": 52600,
+        "trades": [
+          { "contract": "MGCG6", "desc": "E-Micro Gold", "type": "SHORT", "entry": 5165.20, "exit": 5131.60, "qty": 2, "pnl": 669.32 }
+        ]
+      },
+      {
+        "num": 3,
+        "id": "PAAPEX180810000059",
+        "pnl": 515.32,
+        "balance": 50515.32,
+        "tradingDays": 1,
+        "profitableDays50": 1,
+        "safetyBuffer": 515.32,
+        "safetyBufferGoal": 2600,
+        "minBalance": 50515.32,
+        "minBalanceGoal": 52600,
+        "trades": [
+          { "contract": "MGCG6", "desc": "E-Micro Gold", "type": "SHORT", "entry": 5165.20, "exit": 5139.30, "qty": 2, "pnl": 515.32 }
+        ]
+      },
+      {
+        "num": 4,
+        "id": "PAAPEX180810000060",
+        "pnl": 515.32,
+        "balance": 50515.32,
+        "tradingDays": 1,
+        "profitableDays50": 1,
+        "safetyBuffer": 515.32,
+        "safetyBufferGoal": 2600,
+        "minBalance": 50515.32,
+        "minBalanceGoal": 52600,
+        "trades": [
+          { "contract": "MGCG6", "desc": "E-Micro Gold", "type": "SHORT", "entry": 5165.20, "exit": 5139.30, "qty": 2, "pnl": 515.32 }
+        ]
+      },
+      {
+        "num": 5,
+        "id": "PAAPEX180810000061",
+        "pnl": 515.32,
+        "balance": 50515.32,
+        "tradingDays": 1,
+        "profitableDays50": 1,
+        "safetyBuffer": 515.32,
+        "safetyBufferGoal": 2600,
+        "minBalance": 50515.32,
+        "minBalanceGoal": 52600,
+        "trades": [
+          { "contract": "MGCG6", "desc": "E-Micro Gold", "type": "SHORT", "entry": 5165.20, "exit": 5139.30, "qty": 2, "pnl": 515.32 }
+        ]
+      }
+    ]
+  }
+}

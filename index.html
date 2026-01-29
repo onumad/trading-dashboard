@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Accounts Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .total-pnl {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .total-pnl.positive {
+            color: #4ade80;
+        }
+
+        .total-pnl.negative {
+            color: #f87171;
+        }
+
+        .meta {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .account-card {
+            background: #1a1f3a;
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid #2a2f4a;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .account-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .account-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .account-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .account-id {
+            font-size: 0.85em;
+            color: #9ca3af;
+            font-family: 'Courier New', monospace;
+        }
+
+        .pnl-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .pnl-display.positive {
+            color: #4ade80;
+        }
+
+        .pnl-display.negative {
+            color: #f87171;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2f4a;
+        }
+
+        .stat-label {
+            color: #9ca3af;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .progress-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #0f1425;
+            border-radius: 8px;
+        }
+
+        .progress-section h4 {
+            margin-bottom: 12px;
+            color: #4ade80;
+            font-size: 1em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2f4a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.complete {
+            background: linear-gradient(90deg, #4ade80 0%, #10b981 100%);
+        }
+
+        .requirement {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .requirement.complete {
+            color: #4ade80;
+        }
+
+        .requirement.incomplete {
+            color: #9ca3af;
+        }
+
+        .check-icon {
+            margin-left: 10px;
+        }
+
+        .trades-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #2a2f4a;
+        }
+
+        .trades-section h4 {
+            margin-bottom: 10px;
+            font-size: 1em;
+            color: #9ca3af;
+        }
+
+        .trade-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #0f1425;
+            border-radius: 6px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trade-details {
+            flex: 1;
+        }
+
+        .trade-pnl {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .emoji {
+            margin-left: 8px;
+        }
+
+        .lucid-special {
+            border-left: 4px solid #4D94FF;
+            background: linear-gradient(135deg, #1a1f3a 0%, #0f1425 100%);
+        }
+
+        .apex-special {
+            border-left: 4px solid #0052FF;
+            background: linear-gradient(135deg, #001a4d 0%, #00112e 100%);
+        }
+
+        .update-time {
+            text-align: center;
+            margin-top: 30px;
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .accounts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .total-pnl {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Trading Accounts Dashboard</h1>
+            <div class="total-pnl positive" id="totalPnl">$3,529.00</div>
+            <div class="meta">
+                <span id="accountCount">6</span> Accounts • 
+                <span id="dayCount">Day 1</span> • 
+                Last Updated: <span id="updateTime">2026-01-29 18:55 UTC</span>
+            </div>
+        </header>
+
+        <div class="accounts-grid">
+            <!-- Lucid Flex Account -->
+            <div class="account-card lucid-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="lucid-logo.jpg" alt="Lucid" class="account-logo">
+                            Lucid Flex 50k
+                        </div>
+                        <div class="account-id">LFF0505707701003</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$785.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">4</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profit Goal: $785 / $1,000</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 78.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($150+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $785 above start</span>
+                        <span class="check-icon">💰</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout: $2,000 (50% of profit)</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">NQ: -$145</div>
+                        <span class="trade-pnl" style="color: #f87171;">❌</span>
+                    </div>
+                    <div class="trade-item">
+                        <div class="trade-details">GC: +$150</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                    <div class="trade-item">
+                        <div class="trade-details">GC: +$230</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                    <div class="trade-item">
+                        <div class="trade-details">MGC 5x: +$550</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apex Account #1 -->
+            <div class="account-card apex-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #1
+                        </div>
+                        <div class="account-id">PAAPEX180810000062</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$518.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">1</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">1</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: 1 / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $50,518 / $52,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.0%"></div>
+                    </div>
+
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $518 / $2,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 19.9%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">SHORT MGC 2x: +$518</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apex Account #2 -->
+            <div class="account-card apex-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #2
+                        </div>
+                        <div class="account-id">PAAPEX180810000058</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$672.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">1</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">1</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: 1 / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $50,672 / $52,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.3%"></div>
+                    </div>
+
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $672 / $2,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 25.8%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">SHORT MGC 2x: +$672</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apex Account #3 -->
+            <div class="account-card apex-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #3
+                        </div>
+                        <div class="account-id">PAAPEX180810000059</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$518.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">1</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">1</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: 1 / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $50,518 / $52,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.0%"></div>
+                    </div>
+
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $518 / $2,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 19.9%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">SHORT MGC 2x: +$518</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apex Account #4 -->
+            <div class="account-card apex-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #4
+                        </div>
+                        <div class="account-id">PAAPEX180810000060</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$518.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">1</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">1</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: 1 / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $50,518 / $52,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.0%"></div>
+                    </div>
+
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $518 / $2,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 19.9%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">SHORT MGC 2x: +$518</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apex Account #5 -->
+            <div class="account-card apex-special">
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #5
+                        </div>
+                        <div class="account-id">PAAPEX180810000061</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display positive">$518.00</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">1</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">1</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: 1 / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): 1 / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $50,518 / $52,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.0%"></div>
+                    </div>
+
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $518 / $2,600</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 19.9%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    <div class="trade-item">
+                        <div class="trade-details">SHORT MGC 2x: +$518</div>
+                        <span class="trade-pnl" style="color: #4ade80;">✅</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 60 seconds
+        setTimeout(() => location.reload(), 60000);
+        
+        // Update time display
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('updateTime').textContent = now.toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+        }, 1000);
+    </script>
+</body>
+</html>

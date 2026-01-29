@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Accounts Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .total-pnl {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .total-pnl.positive {
+            color: #4ade80;
+        }
+
+        .total-pnl.negative {
+            color: #f87171;
+        }
+
+        .meta {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .date-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .date-selector select {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            background: #1a1f3a;
+            color: #e0e0e0;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .date-selector select:hover {
+            border-color: #764ba2;
+        }
+
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .account-card {
+            background: #1a1f3a;
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid #2a2f4a;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .account-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .account-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .account-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .account-id {
+            font-size: 0.85em;
+            color: #9ca3af;
+            font-family: 'Courier New', monospace;
+        }
+
+        .pnl-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .pnl-display.positive {
+            color: #4ade80;
+        }
+
+        .pnl-display.negative {
+            color: #f87171;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2f4a;
+        }
+
+        .stat-label {
+            color: #9ca3af;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .progress-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #0f1425;
+            border-radius: 8px;
+        }
+
+        .progress-section h4 {
+            margin-bottom: 12px;
+            color: #4ade80;
+            font-size: 1em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2f4a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%);
+            transition: width 0.3s ease;
+        }
+
+        .requirement {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .requirement.incomplete {
+            color: #9ca3af;
+        }
+
+        .check-icon {
+            margin-left: 10px;
+        }
+
+        .trades-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #2a2f4a;
+        }
+
+        .trades-section h4 {
+            margin-bottom: 10px;
+            font-size: 1em;
+            color: #9ca3af;
+        }
+
+        .trade-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #0f1425;
+            border-radius: 6px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trade-details {
+            flex: 1;
+        }
+
+        .trade-pnl {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .lucid-special {
+            border-left: 4px solid #4D94FF;
+            background: linear-gradient(135deg, #1a1f3a 0%, #0f1425 100%);
+        }
+
+        .apex-special {
+            border-left: 4px solid #0052FF;
+            background: linear-gradient(135deg, #001a4d 0%, #00112e 100%);
+        }
+
+        .update-time {
+            text-align: center;
+            margin-top: 30px;
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 768px) {
+            .accounts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .total-pnl {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Trading Accounts Dashboard</h1>
+            <div class="total-pnl positive" id="totalPnl">Loading...</div>
+            <div class="meta">
+                <span id="accountCount">6</span> Accounts • 
+                <span id="dayInfo">Day 1</span> • 
+                <span id="dateDisplay">2026-01-29</span>
+            </div>
+            
+            <div class="date-selector">
+                <label for="dateSelect" style="margin-right: 10px;">📅 Select Day:</label>
+                <select id="dateSelect" onchange="loadDate(this.value)">
+                    <option value="2026-01-29">Day 1 - Jan 29, 2026</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="accountsContainer" class="accounts-grid">
+            <div class="loading">Loading data...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        async function loadDate(date) {
+            try {
+                const response = await fetch(`data/${date}.json`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load data for ${date}`);
+                }
+                
+                currentData = await response.json();
+                renderDashboard();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('accountsContainer').innerHTML = 
+                    '<div class="loading">❌ Failed to load data for ' + date + '</div>';
+            }
+        }
+
+        function renderDashboard() {
+            if (!currentData) return;
+
+            // Update header
+            document.getElementById('totalPnl').textContent = '$' + currentData.totalPnl.toFixed(2);
+            document.getElementById('dayInfo').textContent = 'Day ' + currentData.dayNumber;
+            document.getElementById('dateDisplay').textContent = currentData.date;
+            document.getElementById('updateTime').textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+
+            const container = document.getElementById('accountsContainer');
+            container.innerHTML = '';
+
+            // Render Lucid account
+            container.appendChild(createLucidCard(currentData.accounts.lucid));
+
+            // Render Apex accounts
+            currentData.accounts.apex.forEach(account => {
+                container.appendChild(createApexCard(account));
+            });
+        }
+
+        function createLucidCard(data) {
+            const card = document.createElement('div');
+            card.className = 'account-card lucid-special';
+            
+            const profitProgress = (data.pnl / data.profitGoal * 100).toFixed(1);
+            const daysProgress = (data.profitableDays150 / 5 * 100).toFixed(1);
+            
+            card.innerHTML = `
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="lucid-logo.jpg" alt="Lucid" class="account-logo">
+                            Lucid Flex 50k
+                        </div>
+                        <div class="account-id">${data.id}</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display ${data.pnl >= 0 ? 'positive' : 'negative'}">$${data.pnl.toFixed(2)}</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">${data.trades.length}</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profit Goal: $${data.pnl.toFixed(0)} / $${data.profitGoal}</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(profitProgress, 100)}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($150+): ${data.profitableDays150} / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${daysProgress}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $${data.pnl.toFixed(0)} above start</span>
+                        <span class="check-icon">💰</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout: $2,000 (50% of profit)</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    ${data.trades.map(trade => `
+                        <div class="trade-item">
+                            <div class="trade-details">${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</div>
+                            <span class="trade-pnl" style="color: ${trade.pnl >= 0 ? '#4ade80' : '#f87171'};">${trade.pnl >= 0 ? '✅' : '❌'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function createApexCard(data) {
+            const card = document.createElement('div');
+            card.className = 'account-card apex-special';
+            
+            const tradingDaysProgress = (data.tradingDays / 8 * 100).toFixed(1);
+            const profitDaysProgress = (data.profitableDays50 / 5 * 100).toFixed(1);
+            const balanceProgress = (data.balance / data.minBalanceGoal * 100).toFixed(1);
+            const bufferProgress = (data.safetyBuffer / data.safetyBufferGoal * 100).toFixed(1);
+            
+            card.innerHTML = `
+                <div class="account-header">
+                    <div>
+                        <div class="account-name">
+                            <img src="apex-logo.jpg" alt="Apex" class="account-logo">
+                            Apex 50k #${data.num}
+                        </div>
+                        <div class="account-id">${data.id}</div>
+                    </div>
+                </div>
+                
+                <div class="pnl-display ${data.pnl >= 0 ? 'positive' : 'negative'}">$${data.pnl.toFixed(2)}</div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Days Traded</span>
+                    <span class="stat-value">${data.tradingDays}</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Closed Trades</span>
+                    <span class="stat-value">${data.trades.length}</span>
+                </div>
+
+                <div class="progress-section">
+                    <h4>📊 Payout Progress</h4>
+                    
+                    <div class="requirement incomplete">
+                        <span>Trading Days: ${data.tradingDays} / 8</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${tradingDaysProgress}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Profitable Days ($50+): ${data.profitableDays50} / 5</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${profitDaysProgress}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Min Balance: $${data.balance.toFixed(0)} / $${data.minBalanceGoal.toLocaleString()}</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(balanceProgress, 100)}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Safety Buffer: $${data.safetyBuffer.toFixed(0)} / $${data.safetyBufferGoal.toLocaleString()}</span>
+                        <span class="check-icon">⏳</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(bufferProgress, 100)}%"></div>
+                    </div>
+                    
+                    <div class="requirement incomplete">
+                        <span>Max Payout (first 5): $2,000</span>
+                        <span class="check-icon">💡</span>
+                    </div>
+                </div>
+
+                <div class="trades-section">
+                    <h4>Recent Trades</h4>
+                    ${data.trades.map(trade => `
+                        <div class="trade-item">
+                            <div class="trade-details">${trade.type} ${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</div>
+                            <span class="trade-pnl" style="color: ${trade.pnl >= 0 ? '#4ade80' : '#f87171'};">${trade.pnl >= 0 ? '✅' : '❌'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Load initial data
+        loadDate('2026-01-29');
+    </script>
+</body>
+</html>

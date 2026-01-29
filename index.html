@@ -70,6 +70,28 @@
             '2026-01-29': { pnl: 3494.90, dayNumber: 1 }
         };
         let currentView = localStorage.getItem('dashboardView') || 'grid';
+        
+        // Account goals with defaults
+        const defaultGoals = {
+            'lucid': 1000,
+            'apex': 2600
+        };
+        
+        function getAccountGoals() {
+            const saved = localStorage.getItem('accountGoals');
+            return saved ? JSON.parse(saved) : {};
+        }
+        
+        function setAccountGoal(accountId, goal) {
+            const goals = getAccountGoals();
+            goals[accountId] = parseFloat(goal);
+            localStorage.setItem('accountGoals', JSON.stringify(goals));
+        }
+        
+        function getGoalForAccount(accountId, type) {
+            const goals = getAccountGoals();
+            return goals[accountId] || defaultGoals[type] || 1000;
+        }
 
         function setView(view) {
             currentView = view;
@@ -194,7 +216,8 @@
 
         function createLucidCard(data) {
             const card = document.createElement('div');
-            const profitProgress = (data.pnl / data.profitGoal * 100).toFixed(1);
+            const customGoal = getGoalForAccount(data.id, 'lucid');
+            const profitProgress = (data.pnl / customGoal * 100).toFixed(1);
             
             if (currentView === 'list') {
                 card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-amber-500 hover:translate-y-[-4px] transition-all shadow-lg grid grid-cols-4 items-center gap-6';
@@ -224,7 +247,7 @@
                         </div>
                         <div>
                             <div class="text-xs text-gray-400">Goal</div>
-                            <div class="text-lg font-semibold">$${data.profitGoal}</div>
+                            <div class="text-lg font-semibold">$${customGoal.toLocaleString()}</div>
                         </div>
                     </div>
                     <div class="text-right">
@@ -265,8 +288,12 @@
                     <h4 class="text-sm font-semibold mb-3 text-green-400">📊 Payout Progress</h4>
                     
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-400">Profit Goal: $${data.pnl.toFixed(0)} / $${data.profitGoal}</span>
-                        <span class="text-xs">⏳</span>
+                        <span class="text-sm text-gray-400">
+                            Profit Goal: $${data.pnl.toFixed(0)} / 
+                            <span id="goal-${data.id}">$${customGoal.toLocaleString()}</span>
+                            <button onclick="editGoal('${data.id}', 'lucid', ${customGoal})" class="ml-2 text-xs text-indigo-400 hover:text-indigo-300">✏️</button>
+                        </span>
+                        <span class="text-xs">${profitProgress >= 100 ? '✅' : '⏳'}</span>
                     </div>
                     <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-4">
                         <div class="h-full bg-gradient-to-r from-green-500 to-cyan-400" style="width: ${Math.min(profitProgress, 100)}%"></div>
@@ -310,8 +337,10 @@
 
         function createApexCard(data) {
             const card = document.createElement('div');
+            const customGoal = getGoalForAccount(data.id, 'apex');
             const tradingDaysProgress = (data.tradingDays / 8 * 100).toFixed(1);
             const profitDaysProgress = (data.profitableDays50 / 5 * 100).toFixed(1);
+            const profitGoalProgress = (data.pnl / customGoal * 100).toFixed(1);
             const balanceProgress = (data.balance / data.minBalanceGoal * 100).toFixed(1);
             const bufferProgress = (data.safetyBuffer / data.safetyBufferGoal * 100).toFixed(1);
             
@@ -339,11 +368,11 @@
                         </div>
                         <div>
                             <div class="text-xs text-gray-400">Progress</div>
-                            <div class="text-lg font-semibold">${Math.min((data.pnl / 2600 * 100), 100).toFixed(0)}%</div>
+                            <div class="text-lg font-semibold">${Math.min(profitGoalProgress, 100).toFixed(0)}%</div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xs text-gray-400">Goal: $2,600</div>
+                        <div class="text-xs text-gray-400">Goal: $${customGoal.toLocaleString()}</div>
                         <div class="text-lg font-semibold">$${data.pnl.toFixed(0)}</div>
                     </div>
                 `;
@@ -380,11 +409,15 @@
                     <h4 class="text-sm font-semibold mb-3 text-green-400">📊 Payout Progress</h4>
                     
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-400">Profit Goal: $${data.pnl.toFixed(0)} / $2,600</span>
-                        <span class="text-xs">⏳</span>
+                        <span class="text-sm text-gray-400">
+                            Profit Goal: $${data.pnl.toFixed(0)} / 
+                            <span id="goal-${data.id}">$${customGoal.toLocaleString()}</span>
+                            <button onclick="editGoal('${data.id}', 'apex', ${customGoal})" class="ml-2 text-xs text-indigo-400 hover:text-indigo-300">✏️</button>
+                        </span>
+                        <span class="text-xs">${profitGoalProgress >= 100 ? '✅' : '⏳'}</span>
                     </div>
                     <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-4">
-                        <div class="h-full bg-gradient-to-r from-green-500 to-cyan-400" style="width: ${Math.min((data.pnl / 2600 * 100), 100).toFixed(1)}%"></div>
+                        <div class="h-full bg-gradient-to-r from-green-500 to-cyan-400" style="width: ${Math.min(profitGoalProgress, 100)}%"></div>
                     </div>
                     
                     <div class="flex justify-between items-center mb-2">
@@ -429,6 +462,14 @@
             `;
             
             return card;
+        }
+
+        function editGoal(accountId, type, currentGoal) {
+            const newGoal = prompt(`Set new profit goal for ${accountId}:`, currentGoal);
+            if (newGoal !== null && !isNaN(newGoal) && parseFloat(newGoal) > 0) {
+                setAccountGoal(accountId, newGoal);
+                renderDashboard(); // Re-render to show new goal
+            }
         }
 
         // Initialize

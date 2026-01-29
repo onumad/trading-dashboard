@@ -77,6 +77,9 @@
         let currentMonth = 0;
         let selectedDate = '2026-01-29';
         const tradingDays = ['2026-01-29'];
+        const tradingData = {
+            '2026-01-29': { pnl: 3494.90, dayNumber: 1 }
+        };
         let currentView = localStorage.getItem('dashboardView') || 'grid';
 
         function setView(view) {
@@ -114,21 +117,28 @@
             
             for (let i = 0; i < startingDayOfWeek; i++) {
                 const emptyDay = document.createElement('div');
-                emptyDay.className = 'w-11 h-11';
+                emptyDay.className = 'w-20 h-20';
                 grid.appendChild(emptyDay);
             }
             
             for (let day = 1; day <= lastDay.getDate(); day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayEl = document.createElement('div');
-                dayEl.textContent = day;
+                const dayData = tradingData[dateStr];
                 
                 if (!tradingDays.includes(dateStr)) {
-                    dayEl.className = 'w-11 h-11 flex items-center justify-center bg-slate-700 rounded-lg opacity-30 cursor-not-allowed text-sm';
+                    dayEl.className = 'w-20 h-20 flex flex-col items-center justify-center bg-slate-700 rounded-lg opacity-30 cursor-not-allowed p-2';
+                    dayEl.innerHTML = `<div class="text-sm">${day}</div>`;
                 } else {
                     dayEl.className = dateStr === selectedDate 
-                        ? 'w-11 h-11 flex items-center justify-center bg-indigo-600 rounded-lg cursor-pointer hover:scale-110 transition-all font-bold text-sm'
-                        : 'w-11 h-11 flex items-center justify-center bg-slate-700 rounded-lg cursor-pointer hover:bg-indigo-600 hover:scale-110 transition-all text-sm';
+                        ? 'w-20 h-20 flex flex-col items-center justify-center bg-indigo-600 rounded-lg cursor-pointer hover:scale-105 transition-all font-bold p-2'
+                        : 'w-20 h-20 flex flex-col items-center justify-center bg-slate-700 rounded-lg cursor-pointer hover:bg-indigo-600 hover:scale-105 transition-all p-2';
+                    
+                    const pnlClass = dayData.pnl >= 0 ? 'text-green-400' : 'text-red-400';
+                    dayEl.innerHTML = `
+                        <div class="text-sm mb-1">${day}</div>
+                        <div class="text-xs ${pnlClass} font-semibold">${dayData.pnl >= 0 ? '+' : ''}$${dayData.pnl.toFixed(0)}</div>
+                    `;
                     dayEl.onclick = () => selectDate(dateStr);
                 }
                 
@@ -157,6 +167,15 @@
                 }
                 
                 currentData = await response.json();
+                
+                // Store the data for calendar display
+                if (!tradingData[date]) {
+                    tradingData[date] = {
+                        pnl: currentData.totalPnl,
+                        dayNumber: currentData.dayNumber
+                    };
+                }
+                
                 renderDashboard();
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -210,6 +229,10 @@
                     </div>
                     <div class="flex gap-6">
                         <div>
+                            <div class="text-xs text-gray-400">Days</div>
+                            <div class="text-lg font-semibold">${currentData.dayNumber}</div>
+                        </div>
+                        <div>
                             <div class="text-xs text-gray-400">Trades</div>
                             <div class="text-lg font-semibold">${data.trades.length}</div>
                         </div>
@@ -244,6 +267,11 @@
                 
                 <div class="text-4xl font-bold ${data.pnl >= 0 ? 'text-green-400' : 'text-red-400'} my-4">
                     $${data.pnl.toFixed(2)}
+                </div>
+                
+                <div class="flex justify-between py-3 border-b border-slate-700">
+                    <span class="text-gray-400">Days Traded</span>
+                    <span class="font-semibold">${currentData.dayNumber}</span>
                 </div>
                 
                 <div class="flex justify-between py-3 border-b border-slate-700">

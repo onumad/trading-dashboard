@@ -19,10 +19,7 @@
         }
     </script>
     <style>
-        .account-logo {
-            mix-blend-mode: screen;
-            filter: brightness(1.2);
-        }
+        /* Custom styles if needed */
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen text-gray-200 p-5">
@@ -182,7 +179,7 @@
             container.innerHTML = '';
             
             if (currentView === 'grid') {
-                container.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10';
+                container.className = 'grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10';
             } else {
                 container.className = 'flex flex-col gap-4 mb-10';
             }
@@ -203,7 +200,7 @@
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3 mb-1">
-                            <img src="lucid-logo.jpg" alt="Lucid" class="w-8 h-8 object-contain account-logo">
+                            <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">L</div>
                             <span class="font-bold text-lg">Lucid Flex 50k</span>
                         </div>
                         <div class="text-sm text-gray-400 font-mono">${data.id}</div>
@@ -238,7 +235,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <img src="lucid-logo.jpg" alt="Lucid" class="w-8 h-8 object-contain account-logo">
+                            <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">L</div>
                             <span class="text-xl font-bold">Lucid Flex 50k</span>
                         </div>
                         <div class="text-sm text-gray-400 font-mono">${data.id}</div>
@@ -291,7 +288,7 @@
                     <h4 class="text-sm text-gray-400 mb-3">Recent Trades</h4>
                     ${data.trades.map(trade => `
                         <div class="flex justify-between items-center p-2 mb-2 bg-slate-900 rounded-lg text-sm">
-                            <span>${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</span>
+                            <span>${trade.type} ${trade.desc}: ${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(0)}</span>
                             <span class="text-lg">${trade.pnl >= 0 ? '✅' : '❌'}</span>
                         </div>
                     `).join('')}
@@ -313,7 +310,7 @@
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3 mb-1">
-                            <img src="apex-logo.jpg" alt="Apex" class="w-8 h-8 object-contain account-logo">
+                            <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg flex items-center justify-center text-white font-bold text-xs">A</div>
                             <span class="font-bold text-lg">Apex 50k #${data.num}</span>
                         </div>
                         <div class="text-sm text-gray-400 font-mono">${data.id}</div>
@@ -348,7 +345,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <img src="apex-logo.jpg" alt="Apex" class="w-8 h-8 object-contain account-logo">
+                            <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg flex items-center justify-center text-white font-bold text-xs">A</div>
                             <span class="text-xl font-bold">Apex 50k #${data.num}</span>
                         </div>
                         <div class="text-sm text-gray-400 font-mono">${data.id}</div>
@@ -386,14 +383,6 @@
                     </div>
                     <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-4">
                         <div class="h-full bg-gradient-to-r from-green-500 to-cyan-400" style="width: ${profitDaysProgress}%"></div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-400">Min Balance: $${data.balance.toFixed(0)} / $${data.minBalanceGoal.toLocaleString()}</span>
-                        <span class="text-xs">⏳</span>
-                    </div>
-                    <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-4">
-                        <div class="h-full bg-gradient-to-r from-green-500 to-cyan-400" style="width: ${Math.min(balanceProgress, 100)}%"></div>
                     </div>
                     
                     <div class="flex justify-between items-center mb-2">

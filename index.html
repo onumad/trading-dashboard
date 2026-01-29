@@ -594,6 +594,34 @@
             }
         }
         
+        function parseCSV(csv) {
+            const lines = csv.split('\n').filter(line => line.trim());
+            const result = [];
+            
+            for (let line of lines) {
+                const row = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.trim());
+                result.push(row);
+            }
+            
+            return result;
+        }
+        
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -604,24 +632,44 @@
             reader.onload = async (e) => {
                 try {
                     const csv = e.target.result;
-                    const lines = csv.split('\n').filter(line => line.trim());
+                    const rows = parseCSV(csv);
                     
-                    // Parse CSV header
-                    const headers = lines[0].split(',').map(h => h.trim());
+                    if (rows.length < 2) {
+                        showNotification('❌ CSV file is empty', 'error');
+                        return;
+                    }
+                    
+                    const headers = rows[0];
+                    console.log('CSV Headers:', headers);
                     
                     // Parse trades and group by date
                     const tradesByDate = {};
+                    let skipped = 0;
                     
-                    for (let i = 1; i < lines.length; i++) {
-                        const values = lines[i].split(',');
+                    for (let i = 1; i < rows.length; i++) {
+                        const values = rows[i];
                         const row = {};
                         headers.forEach((header, idx) => {
-                            row[header] = values[idx]?.trim();
+                            row[header] = values[idx] || '';
                         });
                         
-                        // Skip non-filled orders
-                        if (row['Status'] !== ' Filled') continue;
-                        if (!row['Contract']) continue;
+                        // Debug first row
+                        if (i === 1) {
+                            console.log('First row:', row);
+                            console.log('Status:', row['Status'], 'Trimmed:', row['Status'].trim());
+                            console.log('Contract:', row['Contract']);
+                            console.log('B/S:', row['B/S']);
+                        }
+                        
+                        // Skip non-filled orders (Status has leading space in Tradovate CSVs)
+                        if (row['Status'].trim() !== 'Filled') {
+                            skipped++;
+                            continue;
+                        }
+                        if (!row['Contract']) {
+                            skipped++;
+                            continue;
+                        }
                         
                         // Extract date from Fill Time or Timestamp
                         const timestamp = row['Fill Time'] || row['Timestamp'] || new Date().toISOString();
@@ -657,9 +705,16 @@
                         });
                     }
                     
+                    console.log(`Parsed ${rows.length - 1} rows, skipped ${skipped}, extracted trades:`, tradesByDate);
+                    
                     if (firebaseEnabled) {
                         let totalTrades = 0;
                         const dates = Object.keys(tradesByDate);
+                        
+                        if (dates.length === 0) {
+                            showNotification('❌ No filled trades found in CSV', 'error');
+                            return;
+                        }
                         
                         // Save each date's trades to Firebase
                         for (const date of dates) {

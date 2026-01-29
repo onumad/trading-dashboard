@@ -41,6 +41,16 @@
 </head>
 <body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen text-gray-200 p-5">
     <div class="max-w-7xl mx-auto">
+        <!-- Upload Section -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex gap-3">
+                <label for="csvUpload" class="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold cursor-pointer transition-all">
+                    📤 Upload Trades (CSV)
+                </label>
+                <input type="file" id="csvUpload" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+            </div>
+        </div>
+        
         <!-- View Toggle -->
         <div class="flex gap-3 justify-center mb-8">
             <button onclick="setView('grid')" id="gridViewBtn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold transition-all border-2 border-indigo-400">
@@ -149,20 +159,6 @@
             firebaseLoaded = true;
         }
         
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = type === 'success' 
-                ? 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in'
-                : 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 0.3s';
-                setTimeout(() => notification.remove(), 300);
-            }, 2000);
-        }
         
         function setAccountGoal(accountId, goal) {
             const goalValue = parseFloat(goal);
@@ -284,6 +280,23 @@
                 
                 currentData = await response.json();
                 
+                // Check Firebase for updated trades data
+                if (firebaseEnabled) {
+                    try {
+                        const snapshot = await db.ref(`trades/${date}`).once('value');
+                        const firebaseTrades = snapshot.val();
+                        
+                        if (firebaseTrades) {
+                            console.log('📊 Loaded trades from Firebase');
+                            // Merge Firebase trades with JSON data (Firebase takes priority)
+                            // This is a simplified merge - in production you'd want more sophisticated logic
+                            currentData.firebaseTrades = firebaseTrades;
+                        }
+                    } catch (error) {
+                        console.warn('Could not load Firebase trades:', error);
+                    }
+                }
+                
                 // Store the data for calendar display
                 if (!tradingData[date]) {
                     tradingData[date] = {
@@ -325,7 +338,7 @@
             const profitProgress = (data.pnl / customGoal * 100).toFixed(1);
             
             if (currentView === 'list') {
-                card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-amber-500 hover:translate-y-[-4px] transition-all shadow-lg grid grid-cols-4 items-center gap-6';
+                card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-amber-500 shadow-lg grid grid-cols-4 items-center gap-6';
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3 mb-1">
@@ -363,7 +376,7 @@
                 return card;
             }
             
-            card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-amber-500 hover:translate-y-[-4px] transition-all shadow-lg';
+            card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-amber-500 shadow-lg';
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div>
@@ -450,7 +463,7 @@
             const bufferProgress = (data.safetyBuffer / data.safetyBufferGoal * 100).toFixed(1);
             
             if (currentView === 'list') {
-                card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-purple-500 hover:translate-y-[-4px] transition-all shadow-lg grid grid-cols-4 items-center gap-6';
+                card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg grid grid-cols-4 items-center gap-6';
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3 mb-1">
@@ -488,7 +501,7 @@
                 return card;
             }
             
-            card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-purple-500 hover:translate-y-[-4px] transition-all shadow-lg';
+            card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg';
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div>
@@ -579,6 +592,87 @@
                 setAccountGoal(accountId, newGoal);
                 renderDashboard(); // Re-render to show new goal
             }
+        }
+        
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            showNotification('📤 Uploading trades...', 'info');
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n').filter(line => line.trim());
+                    
+                    // Parse CSV header
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    
+                    // Parse trades
+                    const trades = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',');
+                        const trade = {};
+                        headers.forEach((header, idx) => {
+                            trade[header] = values[idx]?.trim();
+                        });
+                        
+                        if (trade['Contract'] && trade['Buy/Sell']) {
+                            trades.push({
+                                contract: trade['Contract'],
+                                type: trade['Buy/Sell'] === 'Buy' ? 'LONG' : 'SHORT',
+                                entry: parseFloat(trade['Avg. Entry Price']),
+                                exit: parseFloat(trade['Avg. Exit Price']),
+                                qty: parseInt(trade['Qty']),
+                                pnl: parseFloat(trade['Realized P&L']),
+                                timestamp: trade['Time Closed'] || new Date().toISOString()
+                            });
+                        }
+                    }
+                    
+                    // Determine date from filename or use today
+                    const dateMatch = file.name.match(/(\d{4}-\d{2}-\d{2})/);
+                    const date = dateMatch ? dateMatch[1] : selectedDate;
+                    
+                    if (firebaseEnabled) {
+                        // Save to Firebase
+                        await db.ref(`trades/${date}`).set(trades);
+                        showNotification(`✅ ${trades.length} trades uploaded and synced!`);
+                        
+                        // Reload data
+                        await loadDate(date);
+                    } else {
+                        showNotification('❌ Firebase not configured. Cannot save trades.', 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    showNotification('❌ Failed to parse CSV file', 'error');
+                }
+                
+                // Reset file input
+                event.target.value = '';
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            let bgColor = 'bg-green-500';
+            if (type === 'error') bgColor = 'bg-red-500';
+            if (type === 'info') bgColor = 'bg-blue-500';
+            
+            notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
 
         // Initialize

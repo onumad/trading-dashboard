@@ -359,21 +359,25 @@
                     </div>
                     <div class="flex gap-6">
                         <div>
-                            <div class="text-xs text-gray-400">Trades</div>
-                            <div class="text-lg font-semibold">${data.trades.length}</div>
+                            <div class="text-xs text-gray-400">Days</div>
+                            <div class="text-lg font-semibold">${data.tradingDays}</div>
                         </div>
                         <div>
-                            <div class="text-xs text-gray-400">Days</div>
-                            <div class="text-lg font-semibold">${data.tradingDays} / 8</div>
+                            <div class="text-xs text-gray-400">Trades</div>
+                            <div class="text-lg font-semibold">${data.trades.length}</div>
                         </div>
                         <div>
                             <div class="text-xs text-gray-400">Progress</div>
                             <div class="text-lg font-semibold">${Math.min(profitGoalProgress, 100).toFixed(0)}%</div>
                         </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Goal</div>
+                            <div class="text-lg font-semibold">$${customGoal.toLocaleString()}</div>
+                        </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xs text-gray-400">Goal: $${customGoal.toLocaleString()}</div>
-                        <div class="text-lg font-semibold">$${data.pnl.toFixed(0)}</div>
+                        <div class="text-xs text-gray-400">Profitable Days</div>
+                        <div class="text-lg font-semibold">${data.profitableDays50} / 5</div>
                     </div>
                 `;
                 return card;

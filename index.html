@@ -484,22 +484,75 @@
             const customGoal = getGoalForAccount(account.accountId, 'apex');
             const profitProgress = customGoal > 0 ? (account.pnl / customGoal * 100).toFixed(1) : 0;
             
-            // Get first letter of account ID
-            const accountLetter = account.accountId.charAt(0).toUpperCase();
+            // Determine account type based on ID
+            const isLucid = account.accountId.startsWith('LF');
+            const isApex = account.accountId.startsWith('PA');
+            
+            // Default values for trackers
+            const tradingDays = account.tradingDays || 1;
+            const profitableDays = isLucid ? (account.profitableDays150 || 0) : (account.profitableDays50 || 0);
+            const profitableDaysGoal = isLucid ? 5 : 4;
+            const profitableDaysThreshold = isLucid ? 150 : 50;
+            
+            // Apex-specific
+            const safetyBuffer = account.safetyBuffer || account.pnl;
+            const safetyBufferGoal = account.safetyBufferGoal || 2600;
+            const safetyBufferProgress = (safetyBuffer / safetyBufferGoal * 100).toFixed(1);
             
             card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-blue-500 shadow-lg';
+            
+            const apexTrackers = isApex ? `
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-700 rounded p-2">
+                        <div class="text-xs text-gray-400">Safety Buffer</div>
+                        <div class="text-sm font-semibold">${safetyBuffer >= 0 ? '+' : ''}$${safetyBuffer.toFixed(2)}</div>
+                        <div class="text-xs text-gray-400">Goal: $${safetyBufferGoal.toLocaleString()}</div>
+                        <div class="w-full bg-slate-600 rounded-full h-1 mt-1">
+                            <div class="bg-green-500 h-1 rounded-full" style="width: ${Math.min(safetyBufferProgress, 100)}%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-700 rounded p-2">
+                        <div class="text-xs text-gray-400">Profitable Days</div>
+                        <div class="text-sm font-semibold">${profitableDays} / ${profitableDaysGoal}</div>
+                        <div class="text-xs text-gray-400">$${profitableDaysThreshold}+ each day</div>
+                        <div class="w-full bg-slate-600 rounded-full h-1 mt-1">
+                            <div class="bg-amber-500 h-1 rounded-full" style="width: ${(profitableDays / profitableDaysGoal * 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+            
+            const lucidTrackers = isLucid ? `
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-700 rounded p-2">
+                        <div class="text-xs text-gray-400">Trading Days</div>
+                        <div class="text-sm font-semibold">${tradingDays}</div>
+                        <div class="text-xs text-gray-400">Consistency</div>
+                    </div>
+                    <div class="bg-slate-700 rounded p-2">
+                        <div class="text-xs text-gray-400">Profitable Days</div>
+                        <div class="text-sm font-semibold">${profitableDays} / ${profitableDaysGoal}</div>
+                        <div class="text-xs text-gray-400">$${profitableDaysThreshold}+ each day</div>
+                        <div class="w-full bg-slate-600 rounded-full h-1 mt-1">
+                            <div class="bg-amber-500 h-1 rounded-full" style="width: ${(profitableDays / profitableDaysGoal * 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+            
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">${accountLetter}</div>
-                            <span class="font-bold text-xl">${account.accountId}</span>
-                        </div>
+                        <div class="font-bold text-xl mb-1">${account.accountId}</div>
+                        <div class="text-xs text-gray-400">${isLucid ? 'Lucid Flex 50k' : isApex ? 'Apex PA 50k' : 'Account'}</div>
                     </div>
                     <div class="text-3xl font-bold ${account.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
                         $${account.pnl.toFixed(2)}
                     </div>
                 </div>
+                
+                ${apexTrackers}
+                ${lucidTrackers}
                 
                 <div class="grid grid-cols-3 gap-4 mb-4">
                     <div class="text-center">

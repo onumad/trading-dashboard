@@ -315,7 +315,6 @@
             document.getElementById('totalPnl').textContent = '$' + currentData.totalPnl.toFixed(2);
             document.getElementById('dayInfo').textContent = 'Day ' + currentData.dayNumber;
             document.getElementById('dateDisplay').textContent = currentData.date;
-            document.getElementById('updateTime').textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
 
             const container = document.getElementById('accountsContainer');
             container.innerHTML = '';

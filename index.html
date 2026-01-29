@@ -272,30 +272,54 @@
         }
 
         async function loadDate(date) {
+            selectedDate = date;
+            
             try {
+                // Try Firebase first
+                if (firebaseEnabled) {
+                    const snapshot = await db.ref(`trades/${date}`).once('value');
+                    const firebaseTrades = snapshot.val();
+                    
+                    if (firebaseTrades) {
+                        console.log(`📊 Loaded ${firebaseTrades.length} trades from Firebase for ${date}`);
+                        
+                        // Group trades by account
+                        const accountsMap = {};
+                        firebaseTrades.forEach(trade => {
+                            if (!accountsMap[trade.account]) {
+                                accountsMap[trade.account] = {
+                                    accountId: trade.account,
+                                    trades: [],
+                                    pnl: 0
+                                };
+                            }
+                            accountsMap[trade.account].trades.push(trade);
+                        });
+                        
+                        // Calculate P&L per account (simple calculation - may need refinement)
+                        Object.values(accountsMap).forEach(account => {
+                            // This is simplified - proper P&L needs matched entry/exit pairs
+                            account.pnl = 0; // Calculate based on your logic
+                        });
+                        
+                        currentData = {
+                            date: date,
+                            accounts: Object.values(accountsMap),
+                            totalPnl: 0
+                        };
+                        
+                        renderDashboard();
+                        return;
+                    }
+                }
+                
+                // Fallback to JSON file
                 const response = await fetch(`data/${date}.json`);
                 if (!response.ok) {
-                    throw new Error(`Failed to load data for ${date}`);
+                    throw new Error(`No data found for ${date}`);
                 }
                 
                 currentData = await response.json();
-                
-                // Check Firebase for updated trades data
-                if (firebaseEnabled) {
-                    try {
-                        const snapshot = await db.ref(`trades/${date}`).once('value');
-                        const firebaseTrades = snapshot.val();
-                        
-                        if (firebaseTrades) {
-                            console.log('📊 Loaded trades from Firebase');
-                            // Merge Firebase trades with JSON data (Firebase takes priority)
-                            // This is a simplified merge - in production you'd want more sophisticated logic
-                            currentData.firebaseTrades = firebaseTrades;
-                        }
-                    } catch (error) {
-                        console.warn('Could not load Firebase trades:', error);
-                    }
-                }
                 
                 // Store the data for calendar display
                 if (!tradingData[date]) {
@@ -309,7 +333,7 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('accountsContainer').innerHTML = 
-                    '<div class="col-span-full text-center text-red-400 p-12">❌ Failed to load data for ' + date + '</div>';
+                    '<div class="col-span-full text-center text-red-400 p-12">❌ No data available for ' + date + '</div>';
             }
         }
 
@@ -325,11 +349,86 @@
                 container.className = 'flex flex-col gap-4 mb-10';
             }
 
-            container.appendChild(createLucidCard(currentData.accounts.lucid));
+            // Handle Firebase-only data structure
+            if (currentData.accounts && Array.isArray(currentData.accounts)) {
+                currentData.accounts.forEach(account => {
+                    container.appendChild(createAccountCard(account));
+                });
+            } else if (currentData.accounts) {
+                // Handle old JSON structure
+                if (currentData.accounts.lucid) {
+                    container.appendChild(createLucidCard(currentData.accounts.lucid));
+                }
 
-            currentData.accounts.apex.forEach(account => {
-                container.appendChild(createApexCard(account));
-            });
+                if (currentData.accounts.apex) {
+                    currentData.accounts.apex.forEach(account => {
+                        container.appendChild(createApexCard(account));
+                    });
+                }
+            } else {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 p-12">No accounts data</div>';
+            }
+        }
+        
+        function createAccountCard(account) {
+            const card = document.createElement('div');
+            const customGoal = getGoalForAccount(account.accountId, 'apex');
+            const profitProgress = customGoal > 0 ? (account.pnl / customGoal * 100).toFixed(1) : 0;
+            
+            card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-blue-500 shadow-lg';
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+                            <span class="font-bold text-xl">Trading Account</span>
+                        </div>
+                        <div class="text-sm text-gray-400 font-mono">${account.accountId}</div>
+                    </div>
+                    <div class="text-3xl font-bold ${account.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        $${account.pnl.toFixed(2)}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Trades</div>
+                        <div class="text-lg font-semibold">${account.trades.length}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Progress</div>
+                        <div class="text-lg font-semibold">${profitProgress}%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Goal</div>
+                        <div class="text-lg font-semibold cursor-pointer hover:text-blue-400" onclick="editGoal('${account.accountId}', 'apex', ${customGoal})">$${customGoal.toLocaleString()}</div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>Progress to Goal</span>
+                        <span>${profitProgress}%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all" style="width: ${Math.min(profitProgress, 100)}%"></div>
+                    </div>
+                </div>
+                
+                <details class="mt-4">
+                    <summary class="cursor-pointer text-sm text-blue-400 hover:text-blue-300 select-none">📊 View ${account.trades.length} Trades</summary>
+                    <div class="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                        ${account.trades.map(trade => `
+                            <div class="flex justify-between items-center p-2 bg-slate-700 rounded text-xs">
+                                <span class="font-mono">${trade.contract || 'N/A'}</span>
+                                <span class="${trade.type === 'LONG' ? 'text-green-400' : 'text-red-400'}">${trade.type}</span>
+                                <span>${trade.qty}x @ $${trade.price.toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </details>
+            `;
+            return card;
         }
 
         function createLucidCard(data) {
@@ -689,6 +788,7 @@
                             tradesByDate[tradeDate] = [];
                         }
                         
+                        const account = row['Account'];
                         const contract = row['Contract'];
                         const product = row['Product Description'] || row['Product'] || contract;
                         const type = row['B/S'].trim() === 'Buy' ? 'LONG' : 'SHORT';
@@ -696,6 +796,7 @@
                         const qty = parseInt(row['Filled Qty'] || row['filledQty']);
                         
                         tradesByDate[tradeDate].push({
+                            account: account,
                             contract: contract,
                             desc: product,
                             type: type,
@@ -764,10 +865,57 @@
             }, 3000);
         }
 
+        // Load all available dates from Firebase on startup
+        async function initializeDashboard() {
+            if (firebaseEnabled) {
+                try {
+                    const snapshot = await db.ref('trades').once('value');
+                    const trades = snapshot.val();
+                    
+                    if (trades) {
+                        // Populate tradingData with all available dates
+                        Object.keys(trades).forEach(date => {
+                            const dayTrades = trades[date];
+                            let totalPnl = 0;
+                            
+                            // Calculate P&L for the day (simplified - you may want more sophisticated logic)
+                            dayTrades.forEach(trade => {
+                                // This is a placeholder - actual P&L calculation would need matched pairs
+                                totalPnl += 0; // You'd calculate this based on your logic
+                            });
+                            
+                            tradingData[date] = {
+                                pnl: totalPnl,
+                                dayNumber: null, // Can be set if needed
+                                trades: dayTrades
+                            };
+                        });
+                        
+                        console.log('Loaded dates from Firebase:', Object.keys(tradingData));
+                        renderCalendar();
+                        
+                        // Load most recent date
+                        const dates = Object.keys(tradingData).sort().reverse();
+                        if (dates.length > 0) {
+                            loadDate(dates[0]);
+                        }
+                    } else {
+                        // No Firebase data, try loading default
+                        loadDate('2026-01-29');
+                    }
+                } catch (error) {
+                    console.error('Error loading Firebase data:', error);
+                    loadDate('2026-01-29');
+                }
+            } else {
+                // No Firebase, load default
+                loadDate('2026-01-29');
+            }
+        }
+        
         // Initialize
         setView(currentView);
-        renderCalendar();
-        loadDate('2026-01-29');
+        initializeDashboard();
     </script>
 </body>
 </html>

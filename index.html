@@ -614,41 +614,47 @@
                     
                     for (let i = 1; i < lines.length; i++) {
                         const values = lines[i].split(',');
-                        const trade = {};
+                        const row = {};
                         headers.forEach((header, idx) => {
-                            trade[header] = values[idx]?.trim();
+                            row[header] = values[idx]?.trim();
                         });
                         
-                        if (trade['Contract'] && trade['Buy/Sell']) {
-                            const timestamp = trade['Time Closed'] || new Date().toISOString();
-                            
-                            // Extract date from timestamp (handle various formats)
-                            let tradeDate;
-                            if (timestamp.includes('-')) {
-                                // Format: 2026-01-29 or 2026-01-29T10:30:00
-                                tradeDate = timestamp.split(' ')[0].split('T')[0];
-                            } else if (timestamp.includes('/')) {
-                                // Format: 01/29/2026
-                                const parts = timestamp.split(' ')[0].split('/');
-                                tradeDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-                            } else {
-                                tradeDate = new Date(timestamp).toISOString().split('T')[0];
-                            }
-                            
-                            if (!tradesByDate[tradeDate]) {
-                                tradesByDate[tradeDate] = [];
-                            }
-                            
-                            tradesByDate[tradeDate].push({
-                                contract: trade['Contract'],
-                                type: trade['Buy/Sell'] === 'Buy' ? 'LONG' : 'SHORT',
-                                entry: parseFloat(trade['Avg. Entry Price']),
-                                exit: parseFloat(trade['Avg. Exit Price']),
-                                qty: parseInt(trade['Qty']),
-                                pnl: parseFloat(trade['Realized P&L']),
-                                timestamp: timestamp
-                            });
+                        // Skip non-filled orders
+                        if (row['Status'] !== ' Filled') continue;
+                        if (!row['Contract']) continue;
+                        
+                        // Extract date from Fill Time or Timestamp
+                        const timestamp = row['Fill Time'] || row['Timestamp'] || new Date().toISOString();
+                        let tradeDate;
+                        if (timestamp.includes('/')) {
+                            // Format: 01/29/2026
+                            const parts = timestamp.split(' ')[0].split('/');
+                            tradeDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                        } else if (timestamp.includes('-')) {
+                            // Format: 2026-01-29 or 2026-01-29T10:30:00
+                            tradeDate = timestamp.split(' ')[0].split('T')[0];
+                        } else {
+                            tradeDate = new Date(timestamp).toISOString().split('T')[0];
                         }
+                        
+                        if (!tradesByDate[tradeDate]) {
+                            tradesByDate[tradeDate] = [];
+                        }
+                        
+                        const contract = row['Contract'];
+                        const product = row['Product Description'] || row['Product'] || contract;
+                        const type = row['B/S'].trim() === 'Buy' ? 'LONG' : 'SHORT';
+                        const price = parseFloat(row['Avg Fill Price'] || row['avgPrice'] || row['decimalFillAvg']);
+                        const qty = parseInt(row['Filled Qty'] || row['filledQty']);
+                        
+                        tradesByDate[tradeDate].push({
+                            contract: contract,
+                            desc: product,
+                            type: type,
+                            price: price,
+                            qty: qty,
+                            timestamp: timestamp
+                        });
                     }
                     
                     if (firebaseEnabled) {

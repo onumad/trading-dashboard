@@ -23,7 +23,20 @@
         }
     </script>
     <style>
-        /* Custom styles if needed */
+        @keyframes slide-in {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-900 to-purple-900 min-h-screen text-gray-200 p-5">
@@ -99,7 +112,8 @@
             '2026-01-29': { pnl: 3494.90, dayNumber: 1 }
         };
         let currentView = localStorage.getItem('dashboardView') || 'grid';
-        let accountGoalsCache = {};
+        let accountGoalsCache = null; // null means not loaded yet
+        let firebaseLoaded = false;
         
         // Account goals with defaults
         const defaultGoals = {
@@ -109,17 +123,45 @@
         
         // Load goals from Firebase on startup
         if (firebaseEnabled) {
-            db.ref('goals').on('value', (snapshot) => {
+            db.ref('goals').once('value', (snapshot) => {
                 accountGoalsCache = snapshot.val() || {};
-                console.log('Goals loaded from Firebase:', accountGoalsCache);
+                firebaseLoaded = true;
+                console.log('✅ Goals loaded from Firebase:', accountGoalsCache);
                 if (currentData) {
-                    renderDashboard(); // Re-render if data already loaded
+                    renderDashboard(); // Re-render with Firebase data
+                }
+            });
+            
+            // Listen for changes after initial load
+            db.ref('goals').on('value', (snapshot) => {
+                if (firebaseLoaded) {
+                    accountGoalsCache = snapshot.val() || {};
+                    console.log('🔄 Goals updated from Firebase');
+                    if (currentData) {
+                        renderDashboard();
+                    }
                 }
             });
         } else {
             // Fallback to localStorage
             const saved = localStorage.getItem('accountGoals');
             accountGoalsCache = saved ? JSON.parse(saved) : {};
+            firebaseLoaded = true;
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = type === 'success' 
+                ? 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in'
+                : 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
         }
         
         function setAccountGoal(accountId, goal) {
@@ -131,10 +173,11 @@
                     .then(() => {
                         console.log('✅ Goal saved to Firebase');
                         accountGoalsCache[accountId] = goalValue;
+                        showNotification('✅ Goal saved and synced!');
                     })
                     .catch((error) => {
                         console.error('❌ Firebase save failed:', error);
-                        alert('Failed to save goal. Using localStorage fallback.');
+                        showNotification('❌ Save failed. Using local storage.', 'error');
                         // Fallback to localStorage
                         accountGoalsCache[accountId] = goalValue;
                         localStorage.setItem('accountGoals', JSON.stringify(accountGoalsCache));
@@ -143,10 +186,15 @@
                 // Use localStorage
                 accountGoalsCache[accountId] = goalValue;
                 localStorage.setItem('accountGoals', JSON.stringify(accountGoalsCache));
+                showNotification('💾 Goal saved locally');
             }
         }
         
         function getGoalForAccount(accountId, type) {
+            // Wait for Firebase to load before using defaults
+            if (accountGoalsCache === null) {
+                return defaultGoals[type] || 1000; // Temporary default while loading
+            }
             return accountGoalsCache[accountId] || defaultGoals[type] || 1000;
         }
 

@@ -446,15 +446,17 @@
             const customGoal = getGoalForAccount(account.accountId, 'apex');
             const profitProgress = customGoal > 0 ? (account.pnl / customGoal * 100).toFixed(1) : 0;
             
+            // Get first letter of account ID
+            const accountLetter = account.accountId.charAt(0).toUpperCase();
+            
             card.className = 'bg-slate-800 rounded-xl p-6 border-l-4 border-blue-500 shadow-lg';
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
-                            <span class="font-bold text-xl">Trading Account</span>
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">${accountLetter}</div>
+                            <span class="font-bold text-xl">${account.accountId}</span>
                         </div>
-                        <div class="text-sm text-gray-400 font-mono">${account.accountId}</div>
                     </div>
                     <div class="text-3xl font-bold ${account.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
                         $${account.pnl.toFixed(2)}

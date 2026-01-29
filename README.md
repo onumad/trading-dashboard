@@ -2,10 +2,9 @@
 
 Live dashboard for tracking funded prop firm trading accounts.
 
-## 📊 Live Dashboards
+## 📊 Live Dashboard
 
-- **Main Dashboard**: [https://onumad.github.io/trading-dashboard/](https://onumad.github.io/trading-dashboard/)
-- **Dynamic Dashboard** (with date selector): [dashboard-dynamic.html](https://onumad.github.io/trading-dashboard/dashboard-dynamic.html)
+[https://onumad.github.io/trading-dashboard/](https://onumad.github.io/trading-dashboard/)
 
 ## Accounts Tracked
 
